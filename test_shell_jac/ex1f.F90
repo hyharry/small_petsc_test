@@ -308,6 +308,7 @@
 !    - Note that the Fortran interface to VecGetArray() differs from the
 !      C version.  See the Fortran chapter of the users manual for details.
 
+      print*, '( in rhs )'
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
       call VecGetArray(f,lf_v,lf_i,ierr)
 
@@ -322,6 +323,7 @@
 
       call VecRestoreArrayRead(x,lx_v,lx_i,ierr)
       call VecRestoreArray(f,lf_v,lf_i,ierr)
+      print*, '( leave rhs )'
 
       return
       end
@@ -430,7 +432,7 @@ PetscScalar  A(4)
 PetscErrorCode ierr
 integer dummy(*)
 
-print*, 'in jac shell'
+print*, '++++++++++++ in jac shell +++++++++++'
 
 end subroutine FormJacobianShell
 
@@ -455,6 +457,7 @@ subroutine  MyMult(J,X,F,ierr)
       
 !  Get pointer to vector data
 
+  print*, '=== start mymult ==='
       i2 = 2
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
 
@@ -490,8 +493,8 @@ subroutine  MyMult(J,X,F,ierr)
 
 
   call MatMult(B,X,F,ierr)
-  print*, 'done mymult'
   call MatDestroy(B,ierr)
+  print*, '=== done mymult ==='
   
 
   return
