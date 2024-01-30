@@ -114,6 +114,7 @@
 
       external FormFunction, FormJacobian, MyLineSearch
       external FormJacobianShell, MyMult ! ==== Yi ====
+      external converge_test_ksp ! ==== Yi ====
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !                   Macro definitions
@@ -213,8 +214,9 @@
       call KSPGetPC(ksp,pc,ierr)
       call PCSetType(pc,PCNONE,ierr)
       tol = 1.e-4
-      call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,                  &
-     &                      PETSC_DEFAULT_REAL,i20,ierr)
+    !  call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,                  &
+    ! &                      PETSC_DEFAULT_REAL,i20,ierr)
+      call KSPSetConvergenceTest(ksp,converge_test_ksp,0,PETSC_NULL_FUNCTION,ierr)
 
 !  Set SNES/KSP/KSP/PC runtime options, e.g.,
 !      -snes_view -snes_monitor -ksp_type <ksp> -pc_type <pc>
@@ -499,6 +501,23 @@ subroutine  MyMult(J,X,F,ierr)
 
   return
 end subroutine MyMult
+
+subroutine converge_test_ksp(ksp, it, rnorm, reason, ctx, ierr)
+  use petsc
+  KSP       :: ksp
+  PetscInt  :: it
+  PetscReal :: rnorm
+  KSPConvergedReason :: reason
+  type(PetscObject), pointer :: ctx
+  PetscErrorCode :: ierr
+
+  print *, '!!!!!!!!!!!!!!!!!!!!!!my ksp test'
+  call KSPGetResidualNorm(ksp, rnorm, ierr)
+  print *, rnorm
+  if ( rnorm < 1.0e-5 ) then
+    reason = 1
+  endif 
+end subroutine converge_test_ksp
 
 !/*TEST
 !
