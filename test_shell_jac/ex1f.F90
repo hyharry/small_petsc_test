@@ -35,6 +35,7 @@
            MPI_Comm :: comm
            PetscInt :: mloc,nloc,m,n
            TYPE(MatCtx) :: ctx
+           !Vec :: ctx
            Mat :: mat
            PetscErrorCode :: ierr
          END SUBROUTINE MatCreateShell
@@ -107,6 +108,10 @@
      TYPE(MatCtx),POINTER :: ctxF_pt
      Mat :: F
        PetscInt :: n=128
+     
+    ! ===== Yi: record X as ctx for MyMult ====
+    Vec :: X_rec
+
 
 
 !  Note: Any user-defined Fortran routines (such as FormJacobian)
@@ -310,7 +315,7 @@
 !    - Note that the Fortran interface to VecGetArray() differs from the
 !      C version.  See the Fortran chapter of the users manual for details.
 
-      print*, '( in rhs )'
+!      print*, '( in rhs )'
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
       call VecGetArray(f,lf_v,lf_i,ierr)
 
@@ -325,7 +330,7 @@
 
       call VecRestoreArrayRead(x,lx_v,lx_i,ierr)
       call VecRestoreArray(f,lf_v,lf_i,ierr)
-      print*, '( leave rhs )'
+!      print*, '( leave rhs )'
 
       return
       end
@@ -430,20 +435,24 @@ subroutine FormJacobianShell(snes,X,jac,B,dummy,ierr)
 SNES         snes
 Vec          X
 Mat          jac,B
-PetscScalar  A(4)
 PetscErrorCode ierr
 integer dummy(*)
 
-print*, '++++++++++++ in jac shell +++++++++++'
+!print*, '++++++++++++ in jac shell +++++++++++'
 
 end subroutine FormJacobianShell
 
-subroutine  MyMult(J,X,F,ierr)
+! Yi Note:
+! customized action is J(X)dX
+! so J should know the current X (in rhs or formFunction)
+! dX is the sought direction (solved by ksp)
+! X should be recorded by ctx of shell matrix
+subroutine  MyMult(J,dX,F,ierr)
   use petscsnes
   implicit none
 
       SNES         snes
-      Vec          X
+      Vec          dX
       Mat          B
       PetscScalar  A(4)
       PetscErrorCode ierr
@@ -459,7 +468,7 @@ subroutine  MyMult(J,X,F,ierr)
       
 !  Get pointer to vector data
 
-  print*, '=== start mymult ==='
+!  print*, '=== start mymult ==='
       i2 = 2
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
 
@@ -494,9 +503,9 @@ subroutine  MyMult(J,X,F,ierr)
       call MatAssemblyEnd(B,MAT_FINAL_ASSEMBLY,ierr)
 
 
-  call MatMult(B,X,F,ierr)
+  call MatMult(B,dX,F,ierr)
   call MatDestroy(B,ierr)
-  print*, '=== done mymult ==='
+!  print*, '=== done mymult ==='
   
 
   return
@@ -511,7 +520,7 @@ subroutine converge_test_ksp(ksp, it, rnorm, reason, ctx, ierr)
   type(PetscObject), pointer :: ctx
   PetscErrorCode :: ierr
 
-  print *, '!!!!!!!!!!!!!!!!!!!!!!my ksp test'
+  !print *, '!!!!!!!!!!!!!!!!!!!!!!my ksp test'
   call KSPGetResidualNorm(ksp, rnorm, ierr)
   print *, rnorm
   if ( rnorm < 1.0e-5 ) then

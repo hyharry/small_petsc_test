@@ -266,6 +266,7 @@
 
       i2 = 2
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
+      print*, 'lx_i offset', lx_i
 
 !  Compute Jacobian entries and insert into matrix.
 !   - Since this is such a small problem, we set all entries for
