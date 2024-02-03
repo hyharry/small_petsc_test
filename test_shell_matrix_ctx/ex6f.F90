@@ -47,7 +47,8 @@
          SUBROUTINE MatShellGetContext(mat,ctx,ierr)
            USE solver_context
            Mat :: mat
-           TYPE(MatCtx),  POINTER :: ctx
+           !TYPE(MatCtx),  POINTER :: ctx
+           TYPE(MatCtx) :: ctx
            PetscErrorCode :: ierr
          END SUBROUTINE MatShellGetContext
        END INTERFACE MatShellGetContext
@@ -64,6 +65,7 @@
        Mat :: F
        TYPE(MatCtx) :: ctxF
        TYPE(MatCtx),POINTER :: ctxF_pt
+       TYPE(MatCtx) :: ctxF_get
        PetscErrorCode :: ierr
        PetscInt :: n=128
 
@@ -76,8 +78,8 @@
         ctxF%lambda = 1113.14d0
         CALL MatCreateShell(PETSC_COMM_WORLD,n,n,n,n,ctxF,F,ierr)
         ! Yi: test ======================
-        CALL MatShellGetContext(F,ctxF_pt,ierr)
-        PRINT*,'ctxF_pt%lambda = ',ctxF_pt%lambda
+        CALL MatShellGetContext(F,ctxF_get,ierr)
+        PRINT*,'ctxF_get%lambda = ',ctxF_get%lambda
         ! ===============================
         !CALL MatShellSetContext(F,ctxF,ierr)
         !PRINT*,'ctxF%lambda = ',ctxF%lambda
