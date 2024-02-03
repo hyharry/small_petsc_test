@@ -24,7 +24,8 @@
            USE solver_context
            MPI_Comm :: comm
            PetscInt :: mloc,nloc,m,n
-           TYPE(MatCtx) :: ctx
+           !TYPE(MatCtx) :: ctx
+           integer :: ctx
            Mat :: mat
            PetscErrorCode :: ierr
          END SUBROUTINE MatCreateShell
@@ -36,7 +37,8 @@
          SUBROUTINE MatShellSetContext(mat,ctx,ierr)
            USE solver_context
            Mat :: mat
-           TYPE(MatCtx) :: ctx
+           !TYPE(MatCtx) :: ctx
+           integer :: ctx
            PetscErrorCode :: ierr
          END SUBROUTINE MatShellSetContext
        END INTERFACE MatShellSetContext
@@ -48,7 +50,8 @@
            USE solver_context
            Mat :: mat
            !TYPE(MatCtx),  POINTER :: ctx
-           TYPE(MatCtx) :: ctx
+           !TYPE(MatCtx) :: ctx
+           integer, pointer ::ctx
            PetscErrorCode :: ierr
          END SUBROUTINE MatShellGetContext
        END INTERFACE MatShellGetContext
@@ -69,6 +72,10 @@
        PetscErrorCode :: ierr
        PetscInt :: n=128
 
+       integer :: ctx
+       integer, pointer :: ctx_pt
+       
+
        CALL PetscInitialize(PETSC_NULL_CHARACTER,ierr)
        if (ierr .ne. 0) then
           print*,'Unable to initialize PETSc'
@@ -76,10 +83,11 @@
         endif
 
         ctxF%lambda = 1113.14d0
-        CALL MatCreateShell(PETSC_COMM_WORLD,n,n,n,n,ctxF,F,ierr)
+        ctx = 1234
+        CALL MatCreateShell(PETSC_COMM_WORLD,n,n,n,n,ctx,F,ierr)
         ! Yi: test ======================
-        CALL MatShellGetContext(F,ctxF_get,ierr)
-        PRINT*,'ctxF_get%lambda = ',ctxF_get%lambda
+        CALL MatShellGetContext(F,ctx_pt,ierr)
+        PRINT*,'ctx_pt = ',ctx_pt
         ! ===============================
         !CALL MatShellSetContext(F,ctxF,ierr)
         !PRINT*,'ctxF%lambda = ',ctxF%lambda
