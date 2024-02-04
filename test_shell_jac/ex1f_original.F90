@@ -104,15 +104,15 @@
       call SNESSetFunction(snes,r,FormFunction,0,ierr)
 
 !  Set Jacobian matrix data structure and Jacobian evaluation routine
-      call MatAssemblyBegin(J,MAT_FINAL_ASSEMBLY,ierr)
-      call MatAssemblyEnd(J,MAT_FINAL_ASSEMBLY,ierr)
-      call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      !call MatAssemblyBegin(J,MAT_FINAL_ASSEMBLY,ierr)
+      !call MatAssemblyEnd(J,MAT_FINAL_ASSEMBLY,ierr)
+      !call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
       call MatSetValue(J,0,1,123d0,INSERT_VALUES,ierr)
 
       call SNESSetJacobian(snes,J,J,FormJacobian,0,ierr)
       call MatAssemblyBegin(J,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(J,MAT_FINAL_ASSEMBLY,ierr)
-      call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      !call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !  Customize nonlinear solver; set runtime options
@@ -273,7 +273,12 @@
 
       i2 = 2
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
-      print*, 'lx_i offset', lx_i
+      !print*, 'lx_i offset', lx_i
+      print*, 'in jac'
+      !call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
+      !call MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY,ierr)
+      call MatView(jac,PETSC_VIEWER_STDOUT_WORLD,ierr)
+
 
 !  Compute Jacobian entries and insert into matrix.
 !   - Since this is such a small problem, we set all entries for
