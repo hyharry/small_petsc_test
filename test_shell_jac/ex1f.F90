@@ -500,7 +500,7 @@ subroutine  MyMult(J,dX,F,ierr)
       print*, 'ready to get ctx?'
       call MatShellGetContext(J,x,ierr)
       print*, 'done get ctx'
-      !call VecView(x,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      call VecView(x,PETSC_VIEWER_STDOUT_WORLD,ierr)
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
 
       ! Yi: create tmp B
