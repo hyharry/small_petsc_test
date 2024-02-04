@@ -25,7 +25,7 @@
            MPI_Comm :: comm
            PetscInt :: mloc,nloc,m,n
            !TYPE(MatCtx) :: ctx
-           integer :: ctx
+           Vec :: ctx
            Mat :: mat
            PetscErrorCode :: ierr
          END SUBROUTINE MatCreateShell
@@ -38,7 +38,7 @@
            USE solver_context
            Mat :: mat
            !TYPE(MatCtx) :: ctx
-           integer :: ctx
+           Vec :: ctx
            PetscErrorCode :: ierr
          END SUBROUTINE MatShellSetContext
        END INTERFACE MatShellSetContext
@@ -51,7 +51,7 @@
            Mat :: mat
            !TYPE(MatCtx),  POINTER :: ctx
            !TYPE(MatCtx) :: ctx
-           integer, pointer ::ctx
+           Vec, pointer ::ctx
            PetscErrorCode :: ierr
          END SUBROUTINE MatShellGetContext
        END INTERFACE MatShellGetContext
@@ -74,6 +74,9 @@
 
        integer :: ctx
        integer, pointer :: ctx_pt
+
+       Vec :: ctx_v
+       Vec, pointer :: ctx_v_pt
        
 
        CALL PetscInitialize(PETSC_NULL_CHARACTER,ierr)
@@ -84,16 +87,21 @@
 
         ctxF%lambda = 1113.14d0
         ctx = 1234
-        CALL MatCreateShell(PETSC_COMM_WORLD,n,n,n,n,ctx,F,ierr)
+        call VecCreateSeq(PETSC_COMM_WORLD,2,ctx_v,ierr)
+        CALL MatCreateShell(PETSC_COMM_WORLD,n,n,n,n,ctx_v,F,ierr)
+        call VecSetValue(ctx_v,1,100d0,INSERT_VALUES,ierr)
+        call VecSetValue(ctx_v,0,876d0,INSERT_VALUES,ierr)
         ! Yi: test ======================
-        CALL MatShellGetContext(F,ctx_pt,ierr)
-        PRINT*,'ctx_pt = ',ctx_pt
+        CALL MatShellGetContext(F,ctx_v_pt,ierr)
+        call VecView(ctx_v_pt,PETSC_VIEWER_STDOUT_WORLD,ierr)
         ! ===============================
         !CALL MatShellSetContext(F,ctxF,ierr)
         !PRINT*,'ctxF%lambda = ',ctxF%lambda
 
         !CALL MatShellGetContext(F,ctxF_pt,ierr)
         !PRINT*,'ctxF_pt%lambda = ',ctxF_pt%lambda
+
+        call VecDestroy(ctx_v,ierr)
 
         call MatDestroy(F,ierr)
         CALL PetscFinalize(ierr)
