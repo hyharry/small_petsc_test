@@ -211,6 +211,9 @@
       call MatShellSetOperation(J,MATOP_MULT,MyMult,ierr)
       call SNESSetJacobian(snes,J,J,FormJacobianShell,0,ierr)
 
+      call MatAssemblyBegin(J,MAT_FINAL_ASSEMBLY,ierr)
+      call MatAssemblyEnd(J,MAT_FINAL_ASSEMBLY,ierr)
+
       call MatShellGetContext(J,tmp_get,ierr)
       call VecView(tmp_get,PETSC_VIEWER_STDOUT_WORLD,ierr)
       print*, 'get in main'
@@ -439,6 +442,8 @@
 ! ======== Yi: shell mat ========
 subroutine FormJacobianShell(snes,X,jac,B,dummy,ierr)
   use petscsnes
+  use petscmat
+  use solver_context_interfaces
   implicit none
 
 SNES         snes
@@ -448,15 +453,15 @@ Mat          jac,B
 PetscErrorCode ierr
 integer dummy(*)
 
-!print*, '++++++++++++ in jac shell +++++++++++'
-  call VecView(X,PETSC_VIEWER_STDOUT_WORLD,ierr)
-  call MatView(jac,PETSC_VIEWER_STDOUT_WORLD,ierr)
+  !call MatShellGetContext(jac,X_get,ierr)
+  !call VecView(X_get,PETSC_VIEWER_STDOUT_SELF,ierr)
+  !print*, 'above should be same as main'
   call MatShellSetContext(jac,X,ierr)
-  print*,'???'
+  print*, 'ctx changed'
   call MatShellGetContext(jac,X_get,ierr)
-  print*,'??'
   call VecView(X_get,PETSC_VIEWER_STDOUT_WORLD,ierr)
-  !print*, X_get(1)
+  call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
+  call MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY,ierr)
 
 end subroutine FormJacobianShell
 
@@ -467,6 +472,7 @@ end subroutine FormJacobianShell
 ! X should be recorded by ctx of shell matrix
 subroutine  MyMult(J,dX,F,ierr)
   use petscsnes
+  use solver_context_interfaces
   implicit none
 
       SNES         snes
@@ -490,9 +496,11 @@ subroutine  MyMult(J,dX,F,ierr)
 
 !  print*, '=== start mymult ==='
       i2 = 2
+      call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
       print*, 'ready to get ctx?'
       call MatShellGetContext(J,x,ierr)
       print*, 'done get ctx'
+      !call VecView(x,PETSC_VIEWER_STDOUT_WORLD,ierr)
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
 
       ! Yi: create tmp B
