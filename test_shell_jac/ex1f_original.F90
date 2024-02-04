@@ -104,8 +104,15 @@
       call SNESSetFunction(snes,r,FormFunction,0,ierr)
 
 !  Set Jacobian matrix data structure and Jacobian evaluation routine
+      call MatAssemblyBegin(J,MAT_FINAL_ASSEMBLY,ierr)
+      call MatAssemblyEnd(J,MAT_FINAL_ASSEMBLY,ierr)
+      call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      call MatSetValue(J,0,1,123d0,INSERT_VALUES,ierr)
 
       call SNESSetJacobian(snes,J,J,FormJacobian,0,ierr)
+      call MatAssemblyBegin(J,MAT_FINAL_ASSEMBLY,ierr)
+      call MatAssemblyEnd(J,MAT_FINAL_ASSEMBLY,ierr)
+      call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !  Customize nonlinear solver; set runtime options
