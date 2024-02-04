@@ -34,8 +34,9 @@
            USE solver_context
            MPI_Comm :: comm
            PetscInt :: mloc,nloc,m,n
-           TYPE(MatCtx) :: ctx
-           !Vec :: ctx
+           !TYPE(MatCtx) :: ctx
+           Vec :: ctx
+           !PetscReal, dimension(2) :: ctx
            Mat :: mat
            PetscErrorCode :: ierr
          END SUBROUTINE MatCreateShell
@@ -47,7 +48,9 @@
          SUBROUTINE MatShellSetContext(mat,ctx,ierr)
            USE solver_context
            Mat :: mat
-           TYPE(MatCtx) :: ctx
+           !TYPE(MatCtx) :: ctx
+           Vec :: ctx
+           !PetscReal :: ctx
            PetscErrorCode :: ierr
          END SUBROUTINE MatShellSetContext
        END INTERFACE MatShellSetContext
@@ -58,7 +61,8 @@
          SUBROUTINE MatShellGetContext(mat,ctx,ierr)
            USE solver_context
            Mat :: mat
-           TYPE(MatCtx),  POINTER :: ctx
+           !TYPE(MatCtx),  POINTER :: ctx
+           Vec, Pointer :: ctx
            PetscErrorCode :: ierr
          END SUBROUTINE MatShellGetContext
        END INTERFACE MatShellGetContext
@@ -111,6 +115,7 @@
      
     ! ===== Yi: record X as ctx for MyMult ====
     Vec :: X_rec
+    Vec, Pointer :: tmp_get
 
 
 
@@ -156,15 +161,15 @@
       !endif
 
         ! ====== Yi: Shell Mat ======
-        ctxF%lambda = 3.14d0
-        CALL MatCreateShell(PETSC_COMM_WORLD,n,n,n,n,ctxF,F,ierr)
-        CALL MatShellSetContext(F,ctxF,ierr)
-        PRINT*,'ctxF%lambda = ',ctxF%lambda
+        !ctxF%lambda = 3.14d0
+        !CALL MatCreateShell(PETSC_COMM_WORLD,n,n,n,n,ctxF,F,ierr)
+        !CALL MatShellSetContext(F,ctxF,ierr)
+        !PRINT*,'ctxF%lambda = ',ctxF%lambda
 
-        CALL MatShellGetContext(F,ctxF_pt,ierr)
-        PRINT*,'ctxF_pt%lambda = ',ctxF_pt%lambda
+        !CALL MatShellGetContext(F,ctxF_pt,ierr)
+        !PRINT*,'ctxF_pt%lambda = ',ctxF_pt%lambda
 
-        call MatDestroy(F,ierr)
+        !call MatDestroy(F,ierr)
 
       i2  = 2
       i20 = 20
@@ -182,6 +187,8 @@
 
       call VecCreateSeq(PETSC_COMM_SELF,i2,x,ierr)
       call VecDuplicate(x,r,ierr)
+      ! Yi: X_rec
+      call VecDuplicate(x,X_rec,ierr)
 
 !  Set function evaluation routine and vector
 
@@ -199,13 +206,14 @@
       ! call SNESSetJacobian(snes,J,J,FormJacobian,0,ierr)
 
       ! ====== Yi: Shell Mat ======
-      ctxF%lambda = 3.14d0
       CALL MatCreateShell(PETSC_COMM_WORLD,PETSC_DECIDE,PETSC_DECIDE,&
-              i2,i2,ctxF,J,ierr)
+              i2,i2,x,J,ierr)
       call MatShellSetOperation(J,MATOP_MULT,MyMult,ierr)
-      CALL MatShellSetContext(J,ctxF,ierr)
-      PRINT*,'ctxF%lambda = ',ctxF%lambda
       call SNESSetJacobian(snes,J,J,FormJacobianShell,0,ierr)
+
+      call MatShellGetContext(J,tmp_get,ierr)
+      call VecView(tmp_get,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      print*, 'get in main'
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !  Customize nonlinear solver; set runtime options
@@ -268,6 +276,7 @@
 !  are no longer needed.
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+      call VecDestroy(X_rec,ierr)
       call VecDestroy(x,ierr)
       call VecDestroy(r,ierr)
       call MatDestroy(J,ierr)
@@ -434,11 +443,20 @@ subroutine FormJacobianShell(snes,X,jac,B,dummy,ierr)
 
 SNES         snes
 Vec          X
+Vec, Pointer :: X_get
 Mat          jac,B
 PetscErrorCode ierr
 integer dummy(*)
 
 !print*, '++++++++++++ in jac shell +++++++++++'
+  call VecView(X,PETSC_VIEWER_STDOUT_WORLD,ierr)
+  call MatView(jac,PETSC_VIEWER_STDOUT_WORLD,ierr)
+  call MatShellSetContext(jac,X,ierr)
+  print*,'???'
+  call MatShellGetContext(jac,X_get,ierr)
+  print*,'??'
+  call VecView(X_get,PETSC_VIEWER_STDOUT_WORLD,ierr)
+  !print*, X_get(1)
 
 end subroutine FormJacobianShell
 
@@ -465,11 +483,16 @@ subroutine  MyMult(J,dX,F,ierr)
 
       PetscScalar lx_v(2)
       PetscOffset lx_i
+
+      Vec, Pointer :: x
       
 !  Get pointer to vector data
 
 !  print*, '=== start mymult ==='
       i2 = 2
+      print*, 'ready to get ctx?'
+      call MatShellGetContext(J,x,ierr)
+      print*, 'done get ctx'
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
 
       ! Yi: create tmp B
