@@ -456,12 +456,12 @@ integer dummy(*)
   !call MatShellGetContext(jac,X_get,ierr)
   !call VecView(X_get,PETSC_VIEWER_STDOUT_SELF,ierr)
   !print*, 'above should be same as main'
-  call MatShellSetContext(jac,X,ierr)
-  print*, 'ctx changed'
-  call MatShellGetContext(jac,X_get,ierr)
-  call VecView(X_get,PETSC_VIEWER_STDOUT_WORLD,ierr)
-  call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
-  call MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY,ierr)
+  !call MatShellSetContext(jac,X,ierr)
+  !print*, 'ctx changed'
+  !call MatShellGetContext(jac,X_get,ierr)
+  !call VecView(X_get,PETSC_VIEWER_STDOUT_WORLD,ierr)
+  !call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
+  !call MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY,ierr)
 
 end subroutine FormJacobianShell
 
@@ -496,11 +496,11 @@ subroutine  MyMult(J,dX,F,ierr)
 
 !  print*, '=== start mymult ==='
       i2 = 2
-      call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
-      print*, 'ready to get ctx?'
+      !call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      !print*, 'ready to get ctx?'
       call MatShellGetContext(J,x,ierr)
-      print*, 'done get ctx'
-      call VecView(x,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      !print*, 'done get ctx'
+      !call VecView(x,PETSC_VIEWER_STDOUT_WORLD,ierr)
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
 
       ! Yi: create tmp B
@@ -533,6 +533,7 @@ subroutine  MyMult(J,dX,F,ierr)
       call MatAssemblyBegin(B,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(B,MAT_FINAL_ASSEMBLY,ierr)
 
+      call MatView(B,PETSC_VIEWER_STDOUT_WORLD,ierr)
 
   call MatMult(B,dX,F,ierr)
   call MatDestroy(B,ierr)

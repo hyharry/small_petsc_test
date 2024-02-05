@@ -277,7 +277,7 @@
       print*, 'in jac'
       !call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
       !call MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY,ierr)
-      call MatView(jac,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      !call MatView(jac,PETSC_VIEWER_STDOUT_WORLD,ierr)
 
 
 !  Compute Jacobian entries and insert into matrix.
@@ -306,6 +306,8 @@
         call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
         call MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY,ierr)
       endif
+
+      call MatView(jac,PETSC_VIEWER_STDOUT_WORLD,ierr)
 
       return
       end
