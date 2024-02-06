@@ -203,7 +203,8 @@
       ! call SNESSetJacobian(snes,J,J,FormJacobian,0,ierr)
 
       ! ====== Yi: Shell Mat ======
-      ctxF%base = xbase
+      !ctxF%base = xbase
+      ctxF%base = x
       CALL MatCreateShell(PETSC_COMM_WORLD,PETSC_DECIDE,PETSC_DECIDE,&
               i2,i2,ctxF,J,ierr)
       call MatShellSetOperation(J,MATOP_MULT,MyMult,ierr)
@@ -453,9 +454,9 @@ integer dummy(*)
   !call MatShellGetContext(jac,X_get,ierr)
   !call VecView(X_get,PETSC_VIEWER_STDOUT_SELF,ierr)
   !print*, 'above should be same as main'
-  call MatShellGetContext(jac,ctxF_pt,ierr)
-  ctxF_pt%base = X
-  print*, 'ctx changed'
+  !call MatShellGetContext(jac,ctxF_pt,ierr)
+  !ctxF_pt%base = X
+  !print*, 'ctx changed'
   !call MatShellGetContext(jac,X_get,ierr)
   !call VecView(X_get,PETSC_VIEWER_STDOUT_WORLD,ierr)
   !call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
