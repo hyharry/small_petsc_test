@@ -207,7 +207,7 @@
 
       ! ====== Yi: Shell Mat ======
       CALL MatCreateShell(PETSC_COMM_WORLD,PETSC_DECIDE,PETSC_DECIDE,&
-              i2,i2,x,J,ierr)
+              i2,i2,X_rec,J,ierr)
       call MatShellSetOperation(J,MATOP_MULT,MyMult,ierr)
       call SNESSetJacobian(snes,J,J,FormJacobianShell,0,ierr)
 
