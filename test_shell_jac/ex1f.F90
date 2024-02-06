@@ -19,8 +19,7 @@
        USE petscmat
        IMPLICIT NONE
        TYPE :: MatCtx
-         PetscReal :: lambda,kappa
-         PetscReal :: h
+         Vec :: base
        END TYPE MatCtx
      END MODULE solver_context
 
@@ -34,9 +33,8 @@
            USE solver_context
            MPI_Comm :: comm
            PetscInt :: mloc,nloc,m,n
-           !TYPE(MatCtx) :: ctx
-           Vec :: ctx
-           !PetscReal, dimension(2) :: ctx
+           TYPE(MatCtx) :: ctx
+           !Vec :: ctx
            Mat :: mat
            PetscErrorCode :: ierr
          END SUBROUTINE MatCreateShell
@@ -48,9 +46,8 @@
          SUBROUTINE MatShellSetContext(mat,ctx,ierr)
            USE solver_context
            Mat :: mat
-           !TYPE(MatCtx) :: ctx
-           Vec :: ctx
-           !PetscReal :: ctx
+           TYPE(MatCtx) :: ctx
+           !Vec :: ctx
            PetscErrorCode :: ierr
          END SUBROUTINE MatShellSetContext
        END INTERFACE MatShellSetContext
@@ -61,8 +58,8 @@
          SUBROUTINE MatShellGetContext(mat,ctx,ierr)
            USE solver_context
            Mat :: mat
-           !TYPE(MatCtx),  POINTER :: ctx
-           Vec, Pointer :: ctx
+           TYPE(MatCtx),  POINTER :: ctx
+           !Vec, Pointer :: ctx
            PetscErrorCode :: ierr
          END SUBROUTINE MatShellGetContext
        END INTERFACE MatShellGetContext
@@ -111,10 +108,10 @@
      TYPE(MatCtx) :: ctxF
      TYPE(MatCtx),POINTER :: ctxF_pt
      Mat :: F
-       PetscInt :: n=128
+     PetscInt :: n=128
      
     ! ===== Yi: record X as ctx for MyMult ====
-    Vec :: X_rec
+    Vec :: xbase
     Vec, Pointer :: tmp_get
 
 
@@ -187,8 +184,8 @@
 
       call VecCreateSeq(PETSC_COMM_SELF,i2,x,ierr)
       call VecDuplicate(x,r,ierr)
-      ! Yi: X_rec
-      call VecDuplicate(x,X_rec,ierr)
+      ! Yi: xbase
+      call VecDuplicate(x,xbase,ierr)
 
 !  Set function evaluation routine and vector
 
@@ -206,16 +203,17 @@
       ! call SNESSetJacobian(snes,J,J,FormJacobian,0,ierr)
 
       ! ====== Yi: Shell Mat ======
+      ctxF%base = xbase
       CALL MatCreateShell(PETSC_COMM_WORLD,PETSC_DECIDE,PETSC_DECIDE,&
-              i2,i2,X_rec,J,ierr)
+              i2,i2,ctxF,J,ierr)
       call MatShellSetOperation(J,MATOP_MULT,MyMult,ierr)
       call SNESSetJacobian(snes,J,J,FormJacobianShell,0,ierr)
 
       call MatAssemblyBegin(J,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(J,MAT_FINAL_ASSEMBLY,ierr)
 
-      call MatShellGetContext(J,tmp_get,ierr)
-      call VecView(tmp_get,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      call MatShellGetContext(J,ctxF_pt,ierr)
+      call VecView(ctxF_pt%base,PETSC_VIEWER_STDOUT_WORLD,ierr)
       print*, 'get in main'
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -279,7 +277,6 @@
 !  are no longer needed.
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-      call VecDestroy(X_rec,ierr)
       call VecDestroy(x,ierr)
       call VecDestroy(r,ierr)
       call MatDestroy(J,ierr)
@@ -448,7 +445,7 @@ subroutine FormJacobianShell(snes,X,jac,B,dummy,ierr)
 
 SNES         snes
 Vec          X
-Vec, Pointer :: X_get
+TYPE(MatCtx), Pointer :: ctxF_pt
 Mat          jac,B
 PetscErrorCode ierr
 integer dummy(*)
@@ -456,8 +453,9 @@ integer dummy(*)
   !call MatShellGetContext(jac,X_get,ierr)
   !call VecView(X_get,PETSC_VIEWER_STDOUT_SELF,ierr)
   !print*, 'above should be same as main'
-  !call MatShellSetContext(jac,X,ierr)
-  !print*, 'ctx changed'
+  call MatShellGetContext(jac,ctxF_pt,ierr)
+  ctxF_pt%base = X
+  print*, 'ctx changed'
   !call MatShellGetContext(jac,X_get,ierr)
   !call VecView(X_get,PETSC_VIEWER_STDOUT_WORLD,ierr)
   !call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
@@ -490,7 +488,8 @@ subroutine  MyMult(J,dX,F,ierr)
       PetscScalar lx_v(2)
       PetscOffset lx_i
 
-      Vec, Pointer :: x
+      Vec :: x
+      TYPE(MatCtx), Pointer :: ctxF_pt
       
 !  Get pointer to vector data
 
@@ -498,7 +497,8 @@ subroutine  MyMult(J,dX,F,ierr)
       i2 = 2
       !call MatView(J,PETSC_VIEWER_STDOUT_WORLD,ierr)
       !print*, 'ready to get ctx?'
-      call MatShellGetContext(J,x,ierr)
+      call MatShellGetContext(J,ctxF_pt,ierr)
+      x = ctxF_pt%base
       !print*, 'done get ctx'
       !call VecView(x,PETSC_VIEWER_STDOUT_WORLD,ierr)
       call VecGetArrayRead(x,lx_v,lx_i,ierr)
