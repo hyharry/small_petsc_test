@@ -18,14 +18,14 @@
        ! USE solver_context
        ! IMPLICIT NONE
 
-#include "petsc/finclude/petsc.h"
-       USE petscsys
-       USE petscmat
-       IMPLICIT NONE
-       TYPE :: MatCtx
-         PetscReal :: lambda,kappa
-         PetscReal :: h
-       END TYPE MatCtx
+!#include "petsc/finclude/petsc.h"
+!       USE petscsys
+!       USE petscmat
+!       IMPLICIT NONE
+!       TYPE :: MatCtx
+!         PetscReal :: lambda,kappa
+!         PetscReal :: h
+!       END TYPE MatCtx
 
 ! ----------------------------------------------------
        INTERFACE MatCreateShell
