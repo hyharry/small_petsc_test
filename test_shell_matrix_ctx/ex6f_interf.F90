@@ -68,7 +68,7 @@
 ! ----------------------------------------------------
      PROGRAM main
 #include "petsc/finclude/petsc.h"
-       !USE solver_context
+       USE solver_context
        USE solver_context_interfaces
        IMPLICIT NONE
        Mat :: F
