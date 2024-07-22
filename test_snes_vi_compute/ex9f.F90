@@ -154,7 +154,9 @@
       call VecNorm(u, NORM_INFINITY, errorinf, ierr)
       CHKERRA(ierr)
       ! Yi: TODO redo the string formatting
-      call PetscPrintf(PETSC_COMM_WORLD, "errors on %" PetscInt_FMT " x %" PetscInt_FMT " grid:  av |u-uexact|  = %.3e,  |u-uexact|_inf = %.3e\n", info.mx, info.my, (double)error1, (double)errorinf, ierr)
+      write(outputString,'(A,I0,A,I0,A,A,1PE10.3,A,A,1PE10.3)') 'errors on ', info%mx, ' x ', info%my, &
+       ' grid:  av |u-uexact|  = ', error1, ',  |u-uexact|_inf = ', errorinf
+      call PetscPrintf(PETSC_COMM_WORLD,outputString, ierr)
       CHKERRA(ierr)
       call VecDestroy(u_exact, ierr)
       CHKERRA(ierr)
