@@ -40,7 +40,6 @@
       PetscInt ys,ye,ym,gys,gye,gym
       PetscInt mx,my
       PetscMPIInt rank,size
-      PetscReal lambda
 
       contains
 
@@ -103,7 +102,7 @@
       PetscReal      error1, errorinf
       PetscErrorCode ierr
 
-      PetscReal two,zero,one
+      PetscScalar two,zero,one
 
       character(len=50) :: outputString
 
@@ -113,7 +112,8 @@
       ! Yi: todo change it!
       external FormBounds
       external FormExactSolution
-      external FormFunctionLocal,FormJacobianLocal
+      external FormFunctionLocal
+      external FormJacobianLocal
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !  Initialize program
@@ -212,13 +212,11 @@
       call PetscFinalize(ierr)
       CHKERRA(ierr)
 
-
-
       
       end
 
-!================ Yi add ==============
-!====================================== 
+
+!================ Forms ==============
       subroutine FormExactSolution(info,da,u,ierr)
             use ex9fmodule
             implicit none
@@ -232,13 +230,6 @@
             PetscScalar, pointer :: au(:,:)
             PetscErrorCode :: ierr
 
-            xs     = info(DMDA_LOCAL_INFO_XS)+1
-            xe     = xs+info(DMDA_LOCAL_INFO_XM)-1
-            ys     = info(DMDA_LOCAL_INFO_YS)+1
-            ye     = ys+info(DMDA_LOCAL_INFO_YM)-1
-            mx     = info(DMDA_LOCAL_INFO_MX)
-            my     = info(DMDA_LOCAL_INFO_MY)
-            
             dx = 4.0 / (mx - 1)
             dy = 4.0 / (my - 1)
             call DMDAVecGetArrayF90(da, u, au, ierr)
@@ -276,13 +267,6 @@
             call DMDAGetLocalInfo(da, info, ierr)
             CHKERRQ(ierr)
 
-            xs     = info(DMDA_LOCAL_INFO_XS)+1
-            xe     = xs+info(DMDA_LOCAL_INFO_XM)-1
-            ys     = info(DMDA_LOCAL_INFO_YS)+1
-            ye     = ys+info(DMDA_LOCAL_INFO_YM)-1
-            mx     = info(DMDA_LOCAL_INFO_MX)
-            my     = info(DMDA_LOCAL_INFO_MY)
-            
             dx = 4.0 / (mx - 1)
             dy = 4.0 / (my - 1)
 
@@ -311,19 +295,12 @@
             PetscInt :: user 
             PetscErrorCode :: ierr
 
-            PetscReal :: twelve
+            PetscScalar :: twelve
 
             PetscInt  i, j
             PetscReal dx, dy, x, y, ue, un, us, uw
 
             twelve = 12.0
-            ! Yi: this piece of info should be embedded in a module and func?
-            xs     = info(DMDA_LOCAL_INFO_XS)+1
-            xe     = xs+info(DMDA_LOCAL_INFO_XM)-1
-            ys     = info(DMDA_LOCAL_INFO_YS)+1
-            ye     = ys+info(DMDA_LOCAL_INFO_YM)-1
-            mx     = info(DMDA_LOCAL_INFO_MX)
-            my     = info(DMDA_LOCAL_INFO_MY)
             
             dx = 4.0 / (mx - 1)
             dy = 4.0 / (my - 1)
@@ -374,20 +351,13 @@
             PetscInt :: user 
             PetscErrorCode :: ierr
 
-            PetscReal :: two
+            PetscScalar :: two
 
             PetscInt   i, j, n
             MatStencil col(4,5), row(4)
             PetscReal  v(5), dx, dy, oxx, oyy
             
             two = 2.0
-            ! Yi: this piece of info should be embedded in a module and func?
-            xs     = info(DMDA_LOCAL_INFO_XS)+1
-            xe     = xs+info(DMDA_LOCAL_INFO_XM)-1
-            ys     = info(DMDA_LOCAL_INFO_YS)+1
-            ye     = ys+info(DMDA_LOCAL_INFO_YM)-1
-            mx     = info(DMDA_LOCAL_INFO_MX)
-            my     = info(DMDA_LOCAL_INFO_MY)
             
             dx = 4.0 / (mx - 1)
             dy = 4.0 / (my - 1)
@@ -451,6 +421,4 @@
             CHKERRQ(ierr)
             
       end subroutine FormJacobianLocal
-
-!================ Yi end ==============
 !======================================
