@@ -3,7 +3,7 @@
 !  It avoids used of certain macros such as PetscCallA() and PetscCheckA() that
 !  generate very long lines
 !
-!  We recommend starting from src/snes/tutorials/ex5f90.F90 instead of this example
+!  We recommend starting from src/snes/tutorials/ex9f90.F90 instead of this example
 !  because that does not have the restricted formatting that makes this version
 !  more difficult to read
 !
@@ -30,7 +30,7 @@
 !  system of equations.
 !
 !  --------------------------------------------------------------------------
-      module ex5fmodule
+      module ex9fmodule
       use petscsnes
       use petscdmda
 #include <petsc/finclude/petscsnes.h>
@@ -41,10 +41,48 @@
       PetscInt mx,my
       PetscMPIInt rank,size
       PetscReal lambda
-      end module ex5fmodule
+
+      contains
+
+      function psi(x, y) result(retval)
+            PetscReal :: x, y
+            PetscReal :: retval
+            PetscReal, parameter :: r0 = 0.9
+
+            PetscReal, parameter :: psi0 = sqrt(1.0 - r0**2)
+            PetscReal, parameter :: dpsi0 = -r0 / psi0
+
+            PetscReal :: r
+
+            r = x**2 + y**2
+
+            if ( r <= r0 ) then
+                  retval = 1.0 - r
+            else 
+                  retval = psi0 + dpsi0 * (r - r0)
+            end if
+            
+      end function psi
+
+      function u_exact_f(x, y) result(retval)
+            PetscReal :: x, y
+            PetscReal :: retval
+            PetscReal :: afree = 0.697965148223374, A = 0.680259411891719, B = 0.471519893402112
+            PetscReal :: r 
+
+            r = sqrt(x**2 + y**2)
+            if ( r <= afree ) then
+                  retval = psi(x, y)
+            else 
+                  retval = -A * log(r) + B
+            end if
+
+      end function u_exact_f
+
+      end module ex9fmodule
 
       program main
-      use ex5fmodule
+      use ex9fmodule
       implicit none
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -56,26 +94,34 @@
 !     x, r        - solution, residual vectors
 !     its         - iterations for convergence
 !
-!  See additional variable declarations in the file ex5f.h
+!  See additional variable declarations in the file ex9f.h
 !
       SNES           snes
       DM             da, da_after
       Vec            u, u_exact
-      DMDALocalInfo  info
+      DMDALocalInfo :: info(DMDA_LOCAL_INFO_SIZE)
       PetscReal      error1, errorinf
       PetscErrorCode ierr
+
+      PetscReal two,zero,one
+
+      character(len=50) :: outputString
 
 !  Note: Any user-defined Fortran routines (such as FormJacobianLocal)
 !  MUST be declared as external.
 
       ! Yi: todo change it!
-      external FormInitialGuess
+      external FormBounds
+      external FormExactSolution
       external FormFunctionLocal,FormJacobianLocal
-      external MySNESConverged
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !  Initialize program
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+      two = 2.0
+      zero = 0.0
+      one = 1.0
 
       call PetscInitialize(ierr)
       CHKERRA(ierr)
@@ -87,12 +133,12 @@
       CHKERRA(ierr)
       call DMSetUp(da,ierr)
       CHKERRA(ierr)
-      call DMDASetUniformCoordinates(da, -2.0, 2.0, -2.0, 2.0, 0.0, 1.0,ierr)
+      call DMDASetUniformCoordinates(da, -two, two, -two, two, zero, one,ierr)
       CHKERRA(ierr)
 
       call DMCreateGlobalVector(da,u,ierr)
       CHKERRA(ierr)
-      call VecSet(u, 0.0, ierr)
+      call VecSet(u, zero, ierr)
       CHKERRA(ierr)
 
       call SNESCreate(PETSC_COMM_WORLD,snes,ierr)
@@ -144,17 +190,16 @@
       CHKERRA(ierr)
       call VecDuplicate(u, u_exact, ierr)
       CHKERRA(ierr)
-      call FormExactSolution(info, u_exact, ierr)
+      call FormExactSolution(info,da_after, u_exact, ierr) ! TODO: which da, da_after?
       CHKERRA(ierr)
-      call VecAXPY(u, -1.0, u_exact, ierr) ! /* u <-- u - u_exact 
+      call VecAXPY(u, -one, u_exact, ierr) ! u <-- u - u_exact
       CHKERRA(ierr)
       call VecNorm(u, NORM_1, error1, ierr)
       CHKERRA(ierr)
-      error1 /= mx * my ! Yi: TODO get mx and my!! average error 
+      error1 = error1 / mx * my
       call VecNorm(u, NORM_INFINITY, errorinf, ierr)
       CHKERRA(ierr)
-      ! Yi: TODO redo the string formatting
-      write(outputString,'(A,I0,A,I0,A,A,1PE10.3,A,A,1PE10.3)') 'errors on ', info%mx, ' x ', info%my, &
+      write(outputString,'(A,I0,A,I0,A,A,1PE10.3,A,A,1PE10.3)') 'errors on ', mx, ' x ', my, &
        ' grid:  av |u-uexact|  = ', error1, ',  |u-uexact|_inf = ', errorinf
       call PetscPrintf(PETSC_COMM_WORLD,outputString, ierr)
       CHKERRA(ierr)
@@ -174,43 +219,8 @@
 
 !================ Yi add ==============
 !====================================== 
-      pure function psi(x, y) result(retval)
-            PetscReal :: x, y
-            PetscReal :: retval
-            PetscReal :: r0 = 0.9
-
-            PetscReal :: psi0 = sqrt(1.0 - r0**2)
-            PetscReal :: dpsi0 = -r0 / psi0
-
-            PetscReal :: r
-
-            r = x**2 + y**2
-
-            if ( r <= r0 ) then
-                  retval = 1.0 - r
-            else 
-                  retval = psi0 + dpsi0 * (r - r0)
-            end if
-            
-      end function psi
-
-      pure function u_exact(x, y) result(retval)
-            PetscReal :: x, y
-            PetscReal :: retval
-            PetscReal :: afree = 0.697965148223374, A = 0.680259411891719, B = 0.471519893402112
-            PetscReal :: r 
-
-            r = sqrt(x**2 + y**2)
-            if ( r <= afree ) then
-                  retval = psi(x, y)
-            else 
-                  retval = -A * log(r) + B
-            end if
-
-      end function u_exact
-
       subroutine FormExactSolution(info,da,u,ierr)
-            use ex5fmodule
+            use ex9fmodule
             implicit none
             
             DMDALocalInfo info(DMDA_LOCAL_INFO_SIZE)
@@ -237,7 +247,7 @@
               y = -2.0 + j * dy
               do i = xs,xe
                 x = -2.0 + i * dx
-                au(i,j) = u_exact(x, y)
+                au(i,j) = u_exact_f(x, y)
               end do
             end do
             call DMDAVecRestoreArrayF90(da, u, au, ierr)
@@ -247,7 +257,7 @@
       end subroutine FormExactSolution
 
       subroutine FormBounds(snes,Xl,Xu,ierr)
-            use ex5fmodule
+            use ex9fmodule
             implicit none
             
             SNES :: snes
@@ -256,6 +266,7 @@
             PetscErrorCode :: ierr
 
             PetscInt  :: i, j
+            PetscReal :: dx, dy, x, y
             PetscScalar, pointer :: aXl(:,:)
 
             DMDALocalInfo :: info(DMDA_LOCAL_INFO_SIZE)
@@ -292,7 +303,7 @@
       end subroutine FormBounds
 
       subroutine FormFunctionLocal(info, au, af, user, ierr)
-            use ex5fmodule
+            use ex9fmodule
             implicit none
 
             DMDALocalInfo :: info(DMDA_LOCAL_INFO_SIZE)
@@ -300,9 +311,12 @@
             PetscInt :: user 
             PetscErrorCode :: ierr
 
+            PetscReal :: twelve
+
             PetscInt  i, j
             PetscReal dx, dy, x, y, ue, un, us, uw
 
+            twelve = 12.0
             ! Yi: this piece of info should be embedded in a module and func?
             xs     = info(DMDA_LOCAL_INFO_XS)+1
             xe     = xs+info(DMDA_LOCAL_INFO_XM)-1
@@ -318,26 +332,26 @@
               y = -2.0 + j * dy
               do i = xs,xe
                 x = -2.0 + i * dx
-                if ( i==1 .or. j==1 .or. i==mx, j==my ) then
-                  af(i,j) = 4.0 * (au(i,j) - u_exact(x, y))
+                if ( i==1 .or. j==1 .or. i==mx .or. j==my ) then
+                  af(i,j) = 4.0 * (au(i,j) - u_exact_f(x, y))
                 else
                   if ( i - 1 == 1 ) then
-                        uw = u_exact(x-dx, y)
+                        uw = u_exact_f(x-dx, y)
                   else
                         uw = au(i-1,j)
                   end if
                   if ( i + 1 == mx ) then
-                        ue = u_exact(x+dx, y)
+                        ue = u_exact_f(x+dx, y)
                   else
                         ue = au(i+1,j)
                   end if
                   if ( j - 1 == 1 ) then
-                        us = u_exact(x,y-dy)
+                        us = u_exact_f(x,y-dy)
                   else
                         us = au(i,j-1)
                   end if
                   if ( j + 1 == my ) then
-                        un = u_exact(x,y+dy)
+                        un = u_exact_f(x,y+dy)
                   else
                         un = au(i,j+1)
                   end if
@@ -345,13 +359,13 @@
                 end if
               end do
             end do
-            call PetscLogFlops(12.0 * ym * xm, ierr)
+            call PetscLogFlops(twelve * ym * xm, ierr)
             CHKERRQ(ierr)
             
       end subroutine FormFunctionLocal
 
       subroutine FormJacobianLocal(info, au, A, jac, user, ierr)
-            use ex5fmodule
+            use ex9fmodule
             implicit none
 
             DMDALocalInfo :: info(DMDA_LOCAL_INFO_SIZE)
@@ -360,10 +374,13 @@
             PetscInt :: user 
             PetscErrorCode :: ierr
 
+            PetscReal :: two
+
             PetscInt   i, j, n
             MatStencil col(4,5), row(4)
             PetscReal  v(5), dx, dy, oxx, oyy
             
+            two = 2.0
             ! Yi: this piece of info should be embedded in a module and func?
             xs     = info(DMDA_LOCAL_INFO_XS)+1
             xe     = xs+info(DMDA_LOCAL_INFO_XM)-1
@@ -381,7 +398,7 @@
               do i = xs,xe
                   row(MatStencil_i) = i
                   row(MatStencil_j) = j
-                  if ( i==1 .or. j==1 .or. i==mx, j==my ) then
+                  if ( i==1 .or. j==1 .or. i==mx .or. j==my ) then
                         v(1) = 4.0
                         call MatSetValuesStencil(jac,1,row,1,row,v,INSERT_VALUES,ierr)
                         CHKERRQ(ierr)
@@ -430,7 +447,7 @@
               call MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY, ierr)
               CHKERRQ(ierr)
              end if
-            call PetscLogFlops(2.0 * ym * xm, ierr)
+            call PetscLogFlops(two* ym * xm, ierr)
             CHKERRQ(ierr)
             
       end subroutine FormJacobianLocal
